@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<!-- Copyright © 2019 Chromium authors and World Wide Web Consortium, (Massachusetts Institute of Technology, ERCIM, Keio University, Beihang). -->
+<html>
+    <head>
+        <title>Exercise implicit changeType for supported test types, using mime types WITH and WITHOUT codecs for addSourceBuffer.</title>
+        <meta name="timeout" content="long">
+        <script src="/resources/testharness.js"></script>
+        <script src="/resources/testharnessreport.js"></script>
+        <script src="mediasource-util.js"></script>
+        <script src="mediasource-changetype-util.js"></script>
+    </head>
+    <body>
+        <div id="log"></div>
+        <script>
+
+function generateChangeTypeTests(audio_types, video_types) {
+  async_test((test) => {
+    // Require at least 1 pair of different audio-only or video-only test media
+    // files sharing same bytestream format.
+    assert_true(audio_types.length > 1 || video_types.length > 1, "Browser doesn't support enough test media");
+
+    // Count the number of unique bytestream formats used in each of audio_types
+    // and video_types.
+    let audio_formats = new Set(Array.from(audio_types, t => t.mime_subtype));
+    let video_formats = new Set(Array.from(video_types, t => t.mime_subtype));
+    assert_greater_than((audio_types.length - audio_formats.size) +
+                        (video_types.length - video_formats.size), 0,
+        "Browser doesn't support at least 2 audio-only or 2 video-only test media with same bytestream format");
+
+    test.done();
+  }, "Check if browser supports enough test media types and pairs of audio-only or video-only media with same bytestream format");
+
+  // Test implicit codec switching, with full codecs in the original
+  // addSourceBuffer calls, and separately without full codecs parameters in
+  // the original addSourceBuffer calls.
+
+  // Generate audio-only changeType tests
+  for (let audio1 of audio_types) {
+    for (let audio2 of audio_types) {
+      // Implicit changeType across bytestream formats is not expected to be
+      // supported, so skip those tests.
+      if (audio1.mime_subtype != audio2.mime_subtype)
+        continue;
+
+      mediaSourceChangeTypeTest(
+          audio1, audio2,
+          "Test audio-only implicit changeType for " +
+              audio1.type + " <-> " + audio2.type,
+          { implicit_changetype: true } );
+
+      // Skip tests where the relaxed type is already fully specified and
+      // tested, above.
+      if (audio1.type == audio1.relaxed_type &&
+          audio2.type == audio2.relaxed_type) {
+        continue;
+      }
+
+      mediaSourceChangeTypeTest(
+          audio1, audio2,
+          "Test audio-only implicit changeType for " +
+              audio1.type + " <-> " + audio2.type +
+              " (using types without codecs parameters for addSourceBuffer)",
+          { use_relaxed_mime_types: true, implicit_changetype: true } );
+    }
+  }
+
+  // Generate video-only changeType tests
+  for (let video1 of video_types) {
+    for (let video2 of video_types) {
+      // Implicit changeType across bytestream formats is not expected to be
+      // supported, so skip those tests.
+      if (video1.mime_subtype != video2.mime_subtype)
+        continue;
+
+      mediaSourceChangeTypeTest(
+          video1, video2,
+          "Test video-only implicit changeType for " +
+              video1.type + " <-> " + video2.type,
+          { implicit_changetype: true } );
+
+      // Skip tests where the relaxed type is already fully specified and
+      // tested, above.
+      if (video1.type == video1.relaxed_type &&
+          video2.type == video2.relaxed_type) {
+        continue;
+      }
+
+      mediaSourceChangeTypeTest(
+          video1, video2,
+          "Test video-only implicit changeType for " +
+              video1.type + " <-> " + video2.type +
+              " (using types without codecs parameters for addSourceBuffer)",
+          { use_relaxed_mime_types: true, implicit_changetype: true } );
+    }
+  }
+}
+
+findSupportedChangeTypeTestTypes(generateChangeTypeTests);
+
+        </script>
+    </body>
+</html>
